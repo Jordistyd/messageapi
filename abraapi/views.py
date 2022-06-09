@@ -1,0 +1,104 @@
+from django.shortcuts import HttpResponse, redirect
+from django.http import JsonResponse
+from django.contrib.auth import login, authenticate
+from django.views.decorators.csrf import ensure_csrf_cookie
+from .models import Message
+from django.core.serializers import serialize
+import json
+from .constants import Keys, Methods, General
+from django.contrib.auth import get_user_model
+
+
+class Login:
+
+    @staticmethod
+    @ensure_csrf_cookie
+    def login_user(request):
+        if request.method == Methods.POST:
+            username = request.POST[Keys.USERNAME]
+            password = request.POST[Keys.PASSWORD]
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect(Messages.show_all_messages, user_name=user.username)
+            else:
+                return HttpResponse("Check username/password")
+
+
+class Messages:
+    @staticmethod
+    def show_all_messages(request, user_name):
+        if request.method == Methods.GET:
+            messages = set(Message.objects.filter(sender=user_name) | Message.objects.filter(receiver=user_name))
+            display_message = serialize(General.JSON, list(messages), fields=(Keys.SENDER, Keys.RECEIVER, Keys.SUBJECT,
+                                                                              Keys.MESSAGE, Keys.CREATION_DATE,
+                                                                              Keys.IS_READ))
+            json_message = json.loads(display_message)
+            # Create The json display
+            return JsonResponse(json_message, json_dumps_params={'indent': 4}, safe=False)
+
+    @staticmethod
+    def show_single_message(request, username):
+        if request.method == Methods.GET:
+            body = request.body.decode("utf-8")
+            body_data = json.loads(body)
+
+            # Implement mark as read functionality
+            if body_data[Keys.IS_READ] == "True":
+                Message.objects.filter(sender=username, subject=body_data[Keys.SUBJECT]).update(is_read=True)
+            else:
+                Message.objects.filter(sender=username, subject=body_data[Keys.SUBJECT]).update(is_read=False)
+            message = Message.objects.filter(sender=username, subject=body_data[Keys.SUBJECT])
+            display_message = serialize(General.JSON, list(message), fields=(Keys.SENDER, Keys.RECEIVER, Keys.SUBJECT,
+                                                                             Keys.MESSAGE, Keys.CREATION_DATE,
+                                                                             Keys.IS_READ))
+            json_message = json.loads(display_message)
+            if len(json_message) == 0:
+                return HttpResponse("No message exists")
+            else:
+                return JsonResponse(json_message, json_dumps_params={"indent": 4}, safe=False)
+
+    @staticmethod
+    def show_unread_messages(request, user_name):
+        if request.method == Methods.GET:
+
+            unread_messages = set(Message.objects.filter(sender=user_name, is_read=False) |
+                                  Message.objects.filter(receiver=user_name, is_read=False))
+
+            display_message = serialize(General.JSON, list(unread_messages),
+                                        fields=(Keys.SENDER, Keys.RECEIVER, Keys.SUBJECT,
+                                                Keys.MESSAGE, Keys.CREATION_DATE,
+                                                Keys.IS_READ))
+
+            json_message = json.loads(display_message)
+            if len(json_message) == 0:
+                return HttpResponse("No unread messages")
+            else:
+                return JsonResponse(json_message, json_dumps_params={"indent": 4}, safe=False)
+
+    @staticmethod
+    @ensure_csrf_cookie
+    def delete_message(request, user_name, subject, type_delete):
+        if request.method == Methods.DELETE:
+            if type_delete == Keys.SENDER:
+                Message.objects.filter(sender=user_name, subject=subject).delete()
+                return HttpResponse(f"sender deleted {subject} Message")
+            elif type_delete == Keys.RECEIVER:
+                Message.objects.filter(receiver=user_name, subject=subject).delete()
+                return HttpResponse(f"receiver deleted {subject} Message")
+            return HttpResponse("Message Deleted")
+
+    @staticmethod
+    @ensure_csrf_cookie
+    def post_new_message(request):
+        if request.method == Methods.POST:
+            user_model = get_user_model()
+            users = user_model.objects.all()
+            # Make sure to upload message to valid users
+            if request.POST[Keys.SENDER] in str(users) or request.POST[Keys.RECEIVER] in str(users):
+                new_message = Message(sender=request.POST[Keys.SENDER], receiver=request.POST[Keys.RECEIVER],
+                                      subject=request.POST[Keys.SUBJECT], message=request.POST[Keys.MESSAGE])
+                new_message.save()
+                return HttpResponse(f"Message to {request.POST[Keys.RECEIVER]} has been sent!")
+            else:
+                return HttpResponse("Message not sent, check sender and receiver")

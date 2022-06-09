@@ -1,0 +1,23 @@
+Hello,
+
+Just to give a quick overview, the postman file in this project will explain how to make each api call
+
+For convenience sake I will attach the following user_names/passwords for the users of the app in order for you to try
+out the API.
+
+Also I felt writing to the tests script here would be a little redundent because of postman
+
+Sorry for the wierd names :)
+
+USER CREDENTIALS:
+ADMIN : username = abradmin
+        password = admin1234
+
+ASAFIZ : username = asafiz
+         password = ackermanz
+
+DAVID : username = david
+        password = biton1234
+
+JORDI: username = jordistyd
+       password = iveryrock
