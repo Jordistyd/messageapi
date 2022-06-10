@@ -1,1 +1,1 @@
-web: gunicorn jorimessageapi.wsgi
+web: gunicorn AbraInt.wsgi
