@@ -48,7 +48,10 @@ class Messages:
                 Message.objects.filter(sender=username, subject=body_data[Keys.SUBJECT]).update(is_read=True)
             else:
                 Message.objects.filter(sender=username, subject=body_data[Keys.SUBJECT]).update(is_read=False)
-            message = Message.objects.filter(sender=username, subject=body_data[Keys.SUBJECT])
+
+            # Show message sent or received
+            message = set(Message.objects.filter(sender=username, subject=body_data[Keys.SUBJECT]) |
+                          Message.objects.filter(receiver=username, subject=body_data[Keys.SUBJECT]))
             display_message = serialize(General.JSON, list(message), fields=(Keys.SENDER, Keys.RECEIVER, Keys.SUBJECT,
                                                                              Keys.MESSAGE, Keys.CREATION_DATE,
                                                                              Keys.IS_READ))
