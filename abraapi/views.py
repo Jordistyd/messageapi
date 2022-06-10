@@ -3,9 +3,9 @@ from django.http import JsonResponse
 from django.contrib.auth import login, authenticate
 from django.views.decorators.csrf import csrf_exempt
 from .models import Message
-from django.core.serializers import serialize
+from .utils import serialize_message
 import json
-from .constants import Keys, Methods, General
+from .constants import Keys, Methods
 from django.contrib.auth import get_user_model
 
 
@@ -30,12 +30,9 @@ class Messages:
     def show_all_messages(request, user_name):
         if request.method == Methods.GET:
             messages = set(Message.objects.filter(sender=user_name) | Message.objects.filter(receiver=user_name))
-            display_message = serialize(General.JSON, list(messages), fields=(Keys.SENDER, Keys.RECEIVER, Keys.SUBJECT,
-                                                                              Keys.MESSAGE, Keys.CREATION_DATE,
-                                                                              Keys.IS_READ))
-            json_message = json.loads(display_message)
+            display_message = serialize_message(messages)
             # Create The json display
-            return JsonResponse(json_message, json_dumps_params={'indent': 4}, safe=False)
+            return JsonResponse(display_message, json_dumps_params={'indent': 4}, safe=False)
 
     @staticmethod
     def show_single_message(request, username):
@@ -45,21 +42,24 @@ class Messages:
 
             # Implement mark as read functionality
             if body_data[Keys.IS_READ] == "True":
-                Message.objects.filter(sender=username, subject=body_data[Keys.SUBJECT]).update(is_read=True)
+                Message.objects.filter(sender=username, subject=body_data[Keys.SUBJECT]).update(
+                    is_read=True) | Message.objects.filter(receiver=username, subject=body_data[Keys.SUBJECT]).update(
+                    is_read=True)
             else:
-                Message.objects.filter(sender=username, subject=body_data[Keys.SUBJECT]).update(is_read=False)
+                Message.objects.filter(sender=username, subject=body_data[Keys.SUBJECT]).update(is_read=False) | \
+                Message.objects.filter(receiver=username, subject=body_data[Keys.SUBJECT]).update(
+                    is_read=False)
 
             # Show message sent or received
             message = set(Message.objects.filter(sender=username, subject=body_data[Keys.SUBJECT]) |
                           Message.objects.filter(receiver=username, subject=body_data[Keys.SUBJECT]))
-            display_message = serialize(General.JSON, list(message), fields=(Keys.SENDER, Keys.RECEIVER, Keys.SUBJECT,
-                                                                             Keys.MESSAGE, Keys.CREATION_DATE,
-                                                                             Keys.IS_READ))
-            json_message = json.loads(display_message)
-            if len(json_message) == 0:
+
+            display_message = serialize_message(message)
+
+            if len(display_message) == 0:
                 return HttpResponse("No message exists")
             else:
-                return JsonResponse(json_message, json_dumps_params={"indent": 4}, safe=False)
+                return JsonResponse(display_message, json_dumps_params={"indent": 4}, safe=False)
 
     @staticmethod
     def show_unread_messages(request, user_name):
@@ -68,16 +68,11 @@ class Messages:
             unread_messages = set(Message.objects.filter(sender=user_name, is_read=False) |
                                   Message.objects.filter(receiver=user_name, is_read=False))
 
-            display_message = serialize(General.JSON, list(unread_messages),
-                                        fields=(Keys.SENDER, Keys.RECEIVER, Keys.SUBJECT,
-                                                Keys.MESSAGE, Keys.CREATION_DATE,
-                                                Keys.IS_READ))
-
-            json_message = json.loads(display_message)
-            if len(json_message) == 0:
+            display_message = serialize_message(unread_messages)
+            if len(display_message) == 0:
                 return HttpResponse("No unread messages")
             else:
-                return JsonResponse(json_message, json_dumps_params={"indent": 4}, safe=False)
+                return JsonResponse(display_message, json_dumps_params={"indent": 4}, safe=False)
 
     @staticmethod
     @csrf_exempt
