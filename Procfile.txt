@@ -1,1 +1,1 @@
-web: gunicorn messageapi.wsgi
+web: gunicorn jorimessageapi.wsgi
