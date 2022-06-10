@@ -45,7 +45,7 @@ class Messages:
                 Message.objects.filter(sender=username, subject=body_data[Keys.SUBJECT]).update(
                     is_read=True) | Message.objects.filter(receiver=username, subject=body_data[Keys.SUBJECT]).update(
                     is_read=True)
-            else:
+            elif body_data[Keys.IS_READ] == "False":
                 Message.objects.filter(sender=username, subject=body_data[Keys.SUBJECT]).update(is_read=False) | \
                 Message.objects.filter(receiver=username, subject=body_data[Keys.SUBJECT]).update(
                     is_read=False)
