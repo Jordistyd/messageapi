@@ -27,8 +27,8 @@ SECRET_KEY = 'django-insecure-=ii)@zyv5ygz6l!^hkxllx_hwum&%loe87n=z(2meb_ivth^4u
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ["https://jordimessageapi.herokuapp.com/"]
+CSRF_TRUSTED_ORIGINS = ["https://jordimessageapi.herokuapp.com/"]
 
 # Application definition
 

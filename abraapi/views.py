@@ -1,7 +1,7 @@
 from django.shortcuts import HttpResponse, redirect
 from django.http import JsonResponse
 from django.contrib.auth import login, authenticate
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import csrf_exempt
 from .models import Message
 from django.core.serializers import serialize
 import json
@@ -12,7 +12,7 @@ from django.contrib.auth import get_user_model
 class Login:
 
     @staticmethod
-    @ensure_csrf_cookie
+    @csrf_exempt
     def login_user(request):
         if request.method == Methods.POST:
             username = request.POST[Keys.USERNAME]
@@ -77,7 +77,7 @@ class Messages:
                 return JsonResponse(json_message, json_dumps_params={"indent": 4}, safe=False)
 
     @staticmethod
-    @ensure_csrf_cookie
+    @csrf_exempt
     def delete_message(request, user_name, subject, type_delete):
         if request.method == Methods.DELETE:
             if type_delete == Keys.SENDER:
@@ -89,7 +89,7 @@ class Messages:
             return HttpResponse("Message Deleted")
 
     @staticmethod
-    @ensure_csrf_cookie
+    @csrf_exempt
     def post_new_message(request):
         if request.method == Methods.POST:
             user_model = get_user_model()
